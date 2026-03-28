@@ -2,11 +2,6 @@
 <html>
 <head>
   <title>Brawl Stars Turnir</title>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
-
   <style>
     body {
       margin: 0;
@@ -57,7 +52,6 @@
     #success { color: lightgreen; font-weight: bold; }
   </style>
 </head>
-
 <body>
 
 <header>
@@ -74,10 +68,11 @@
 <!-- ADMIN LOGIN -->
 <div id="adminLogin" class="box">
   <h3>Admin Login</h3>
-  <input type="password" id="adminPass" placeholder="Lozinka"><br>
+  <input type="password" id="adminPass" placeholder="Lozinka">
+  <button onclick="login()">Login</button>
   <p id="error"></p>
   <p id="success"></p>
-  <button onclick="login()">Login</button>
+  <label><input type="checkbox" id="showPass" onchange="togglePass()"> Prikaži lozinku</label>
 </div>
 
 <!-- GIVEAWAY -->
@@ -87,16 +82,14 @@
 
   <button onclick="prijavaGW()">Prijavi se u GW</button>
   <p>Broj prijavljenih: <span id="brojGW">0</span></p>
-
   <ul id="listaGW"></ul>
 
   <div class="admin" id="adminGW">
     <input id="nazivInput" placeholder="Naziv GW">
     <input id="vrijemeInput" placeholder="Vrijeme">
-    <button onclick="postaviGW()">Postavi</button>
-
+    <button onclick="postaviGW()">Postavi GW</button>
     <button onclick="izvuci()">🎲 Izvuci pobjednika</button>
-    <button onclick="resetGW()">Reset</button>
+    <button onclick="resetGW()">Reset GW</button>
     <button onclick="logout()">Logout</button>
   </div>
 
@@ -113,42 +106,37 @@
 
   <button onclick="prijavaTurnir()">Prijavi se</button>
   <p>Broj timova: <span id="brojTurnir">0</span></p>
-
   <ul id="listaTurnir"></ul>
 
   <div class="admin" id="adminTurnir">
-    <button onclick="resetTurnir()">Reset</button>
+    <button onclick="resetTurnir()">Reset Turnir</button>
   </div>
 </div>
 
 <script>
-  // UBACI SVOJ FIREBASE CONFIG OVDJE
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-
-  // VIŠE ADMINA
-  const adminSifre = ["NEVESINJE2026.28.3", "ADMIN123", "TEST"];
+  // ADMIN LOZINKE
+  const adminSifre = ["NEVESINJE2026.28.3", "ADMIN123"];
   let admin = false;
 
-  // NAV
+  let gwList = [];
+  let turnirList = [];
+
   function show(id) {
     document.querySelectorAll(".box").forEach(b => b.style.display = "none");
     document.getElementById(id).style.display = "block";
   }
 
-  // LOGIN
+  function togglePass() {
+    let p = document.getElementById("adminPass");
+    p.type = p.type === "password" ? "text" : "password";
+  }
+
   function login() {
     let pass = document.getElementById("adminPass").value;
     let error = document.getElementById("error");
     let success = document.getElementById("success");
 
-    if (adminSifre.includes(pass)) {
+    if(adminSifre.includes(pass)) {
       admin = true;
       localStorage.setItem("admin", "true");
       document.querySelectorAll(".admin").forEach(a => a.style.display = "block");
@@ -160,8 +148,7 @@
     }
   }
 
-  // PROVJERA PRI UCITAVANJU
-  if (localStorage.getItem("admin") === "true") {
+  if(localStorage.getItem("admin") === "true") {
     admin = true;
     document.querySelectorAll(".admin").forEach(a => a.style.display = "block");
   }
@@ -171,88 +158,75 @@
     location.reload();
   }
 
-  // GW PRIJAVA
   function prijavaGW() {
     let ime = prompt("Unesi ime i prezime:");
-    if (!ime) return alert("Morate unijeti ime i prezime!");
-    db.collection("gw").add({ ime })
-      .then(() => alert("✅ Uspješno ste se prijavili u GW!"));
+    if(!ime) return;
+    gwList.push(ime);
+    updateGW();
+    alert("✅ Uspješno ste se prijavili!");
   }
 
-  db.collection("gw").onSnapshot(snapshot => {
-    let lista = document.getElementById("listaGW");
-    let count = 0;
-    lista.innerHTML = "";
-    snapshot.forEach(doc => {
-      count++;
+  function updateGW() {
+    let ul = document.getElementById("listaGW");
+    ul.innerHTML = "";
+    gwList.forEach(i => {
       let li = document.createElement("li");
-      li.textContent = doc.data().ime;
-      lista.appendChild(li);
+      li.textContent = i;
+      ul.appendChild(li);
     });
-    document.getElementById("brojGW").textContent = count;
-  });
+    document.getElementById("brojGW").textContent = gwList.length;
+  }
 
   function postaviGW() {
-    if (!admin) return;
-    let naziv = document.getElementById("nazivInput").value;
-    let vrijeme = document.getElementById("vrijemeInput").value;
-    document.getElementById("gwNaziv").textContent = naziv;
-    document.getElementById("gwVrijeme").textContent = "Vrijeme: " + vrijeme;
+    if(!admin) return;
+    let n = document.getElementById("nazivInput").value;
+    let v = document.getElementById("vrijemeInput").value;
+    document.getElementById("gwNaziv").textContent = n;
+    document.getElementById("gwVrijeme").textContent = "Vrijeme: " + v;
   }
 
   function izvuci() {
-    if (!admin) return;
-    db.collection("gw").get().then(snapshot => {
-      let arr = [];
-      snapshot.forEach(doc => arr.push(doc.data().ime));
-      if(arr.length === 0) return alert("Nema prijavljenih!");
-      let win = arr[Math.floor(Math.random() * arr.length)];
-      document.getElementById("pobjednik").textContent = "🎉 Pobjednik: " + win;
-    });
+    if(!admin) return;
+    if(gwList.length===0) { alert("Nema prijavljenih!"); return; }
+    let win = gwList[Math.floor(Math.random()*gwList.length)];
+    document.getElementById("pobjednik").textContent = "🎉 Pobjednik: " + win;
   }
 
   function resetGW() {
-    if (!admin) return;
-    db.collection("gw").get().then(snapshot => {
-      snapshot.forEach(doc => doc.ref.delete());
-    });
+    if(!admin) return;
+    gwList = [];
+    updateGW();
+    document.getElementById("pobjednik").textContent = "";
   }
 
-  // TURNIR PRIJAVA
   function prijavaTurnir() {
-    let p1_ = document.getElementById("p1").value;
-    let p2_ = document.getElementById("p2").value;
-    let p3_ = document.getElementById("p3").value;
-    let tim_ = document.getElementById("tim").value;
-    let bsid_ = document.getElementById("bsid").value;
+    let p1 = document.getElementById("p1").value;
+    let p2 = document.getElementById("p2").value;
+    let p3 = document.getElementById("p3").value;
+    let tim = document.getElementById("tim").value;
+    let bsid = document.getElementById("bsid").value;
 
-    if(!p1_ || !p2_ || !p3_ || !tim_ || !bsid_) {
-      return alert("Popuni sve podatke za turnir!");
-    }
-
-    db.collection("turnir").add({ p1: p1_, p2: p2_, p3: p3_, tim: tim_, bsid: bsid_ })
-      .then(() => alert("✅ Uspješno ste se prijavili u turnir!"));
+    if(!p1 || !p2 || !p3 || !tim || !bsid) return alert("Popuni sve podatke!");
+    turnirList.push({p1,p2,p3,tim,bsid});
+    updateTurnir();
+    alert("✅ Uspješno ste se prijavili u turnir!");
   }
 
-  db.collection("turnir").onSnapshot(snapshot => {
-    let lista = document.getElementById("listaTurnir");
-    let count = 0;
-    lista.innerHTML = "";
-    snapshot.forEach(doc => {
-      count++;
-      let d = doc.data();
+  function updateTurnir() {
+    let ul = document.getElementById("listaTurnir");
+    ul.innerHTML = "";
+    turnirList.forEach(t => {
       let li = document.createElement("li");
-      li.textContent = `${d.tim} (${d.p1}, ${d.p2}, ${d.p3})`;
-      lista.appendChild(li);
+      li.textContent = `${t.tim} (${t.p1}, ${t.p2}, ${t.p3})`;
+      ul.appendChild(li);
     });
-    document.getElementById("brojTurnir").textContent = count;
-  });
+    document.getElementById("brojTurnir").textContent = turnirList.length;
+  }
 
   function resetTurnir() {
-    if (!admin) return;
-    db.collection("turnir").get().then(snapshot => {
-      snapshot.forEach(doc => doc.ref.delete());
-    });
+    if(!admin) return;
+    turnirList = [];
+    updateTurnir();
   }
 </script>
 
