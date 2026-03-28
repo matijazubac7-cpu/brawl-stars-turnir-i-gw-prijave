@@ -3,60 +3,24 @@
 <head>
   <title>Brawl Stars Turnir</title>
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #1e90ff, #00bfff);
-      color: white;
-      text-align: center;
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      padding: 15px;
-      background: rgba(0,0,0,0.2);
-    }
-
-    .user-icon {
-      cursor: pointer;
-      font-size: 28px;
-    }
-
-    button {
-      padding: 10px 15px;
-      margin: 5px;
-      border-radius: 6px;
-      border: none;
-      background: white;
-      color: #1e90ff;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    input {
-      padding: 8px;
-      margin: 3px;
-      border-radius: 5px;
-      border: none;
-      width: 90%;
-    }
-
-    .box { display: none; margin-top: 20px; }
-    .admin { display: none; margin-top: 10px; }
-
-    ul { list-style: none; padding: 0; }
-    li { background: rgba(255,255,255,0.2); margin: 3px; padding: 5px; border-radius: 5px; }
-
-    #error { color: red; font-weight: bold; }
-    #success { color: lightgreen; font-weight: bold; }
+    body { margin:0; font-family:Arial,sans-serif; background: linear-gradient(135deg,#1e90ff,#00bfff); color:white; text-align:center; }
+    header { display:flex; justify-content:space-between; padding:15px; background: rgba(0,0,0,0.2);}
+    .user-icon { cursor:pointer; font-size:28px;}
+    button { padding:10px 15px; margin:5px; border-radius:6px; border:none; background:white; color:#1e90ff; font-weight:bold; cursor:pointer;}
+    input { padding:8px; margin:3px; border-radius:5px; border:none; width:90%; }
+    .box { display:none; margin-top:20px;}
+    .admin, .owner { display:none; margin-top:10px;}
+    ul { list-style:none; padding:0;}
+    li { background: rgba(255,255,255,0.2); margin:3px; padding:5px; border-radius:5px;}
+    #error { color:red; font-weight:bold; }
+    #success { color:lightgreen; font-weight:bold; }
   </style>
 </head>
 <body>
 
 <header>
   <h2>Brawl Stars</h2>
-  <div class="user-icon" onclick="show('adminLogin')">👤</div>
+  <div class="user-icon" onclick="show('loginMenu')">👤</div>
 </header>
 
 <h1>Pozdrav 👋</h1>
@@ -65,34 +29,37 @@
 <button onclick="show('gw')">🎁 Giveaway</button>
 <button onclick="show('turnir')">🏆 Turnir</button>
 
-<!-- ADMIN LOGIN -->
-<div id="adminLogin" class="box">
-  <h3>Admin Login</h3>
-  <input type="password" id="adminPass" placeholder="Lozinka">
-  <button onclick="login()">Login</button>
-  <p id="error"></p>
-  <p id="success"></p>
-  <label><input type="checkbox" id="showPass" onchange="togglePass()"> Prikaži lozinku</label>
+<!-- LOGIN MENU -->
+<div id="loginMenu" class="box">
+  <h3>Prijava</h3>
+  <p>Admin:</p>
+  <input type="password" id="adminPass" placeholder="Admin lozinka"><br>
+  <button onclick="loginAdmin()">Login Admin</button>
+  <p id="errorAdmin"></p>
+  <p id="successAdmin"></p>
+  
+  <p>Owner:</p>
+  <input type="password" id="ownerPass" placeholder="Owner lozinka"><br>
+  <button onclick="loginOwner()">Login Owner</button>
+  <p id="errorOwner"></p>
+  <p id="successOwner"></p>
 </div>
 
 <!-- GIVEAWAY -->
 <div id="gw" class="box">
   <h2 id="gwNaziv">GW</h2>
   <p id="gwVrijeme"></p>
-
   <button onclick="prijavaGW()">Prijavi se u GW</button>
   <p>Broj prijavljenih: <span id="brojGW">0</span></p>
   <ul id="listaGW"></ul>
-
   <div class="admin" id="adminGW">
     <input id="nazivInput" placeholder="Naziv GW">
     <input id="vrijemeInput" placeholder="Vrijeme">
     <button onclick="postaviGW()">Postavi GW</button>
     <button onclick="izvuci()">🎲 Izvuci pobjednika</button>
     <button onclick="resetGW()">Reset GW</button>
-    <button onclick="logout()">Logout</button>
+    <button onclick="logoutAdmin()">Logout Admin</button>
   </div>
-
   <h3 id="pobjednik"></h3>
 </div>
 
@@ -103,132 +70,145 @@
   <input id="p3" placeholder="Igrač 3">
   <input id="tim" placeholder="Ime tima">
   <input id="bsid" placeholder="BS ID">
-
   <button onclick="prijavaTurnir()">Prijavi se</button>
   <p>Broj timova: <span id="brojTurnir">0</span></p>
   <ul id="listaTurnir"></ul>
-
   <div class="admin" id="adminTurnir">
     <button onclick="resetTurnir()">Reset Turnir</button>
   </div>
 </div>
 
-<script>
-  // ADMIN LOZINKE
-  const adminSifre = ["NEVESINJE2026.28.3", "ADMIN123"];
-  let admin = false;
+<!-- OWNER PANEL -->
+<div class="owner" id="ownerPanel">
+  <h3>Owner Panel</h3>
+  <h4>Admini:</h4>
+  <ul id="adminList"></ul>
+  <input id="newAdminPass" placeholder="Nova lozinka za admin">
+  <button onclick="addAdmin()">Dodaj Admina</button>
+  <button onclick="logoutOwner()">Logout Owner</button>
+</div>
 
+<script>
+  let adminSifre = ["NEVESINJE2026.28.3"];
+  const ownerPass = "masan1822";
+  let admin = false;
+  let owner = false;
   let gwList = [];
   let turnirList = [];
 
-  function show(id) {
-    document.querySelectorAll(".box").forEach(b => b.style.display = "none");
-    document.getElementById(id).style.display = "block";
+  function show(id){
+    document.querySelectorAll(".box").forEach(b => b.style.display="none");
+    document.getElementById(id).style.display="block";
   }
 
-  function togglePass() {
-    let p = document.getElementById("adminPass");
-    p.type = p.type === "password" ? "text" : "password";
-  }
-
-  function login() {
-    let pass = document.getElementById("adminPass").value;
-    let error = document.getElementById("error");
-    let success = document.getElementById("success");
-
-    if(adminSifre.includes(pass)) {
+  // ADMIN LOGIN
+  function loginAdmin(){
+    const pass = document.getElementById("adminPass").value;
+    const error = document.getElementById("errorAdmin");
+    const success = document.getElementById("successAdmin");
+    if(adminSifre.includes(pass)){
       admin = true;
-      localStorage.setItem("admin", "true");
-      document.querySelectorAll(".admin").forEach(a => a.style.display = "block");
-      error.textContent = "";
-      success.textContent = "✅ Uspješno ste se prijavili!";
-    } else {
-      error.textContent = "❌ Pogrešna lozinka!";
-      success.textContent = "";
+      document.querySelectorAll(".admin").forEach(a=>a.style.display="block");
+      error.textContent="";
+      success.textContent="✅ Uspješno ste se prijavili!";
+    } else{
+      error.textContent="❌ Pogrešna lozinka!";
+      success.textContent="";
     }
   }
+  function logoutAdmin(){ admin=false; document.querySelectorAll(".admin").forEach(a=>a.style.display="none"); }
 
-  if(localStorage.getItem("admin") === "true") {
-    admin = true;
-    document.querySelectorAll(".admin").forEach(a => a.style.display = "block");
+  // OWNER LOGIN
+  function loginOwner(){
+    const pass = document.getElementById("ownerPass").value;
+    const error = document.getElementById("errorOwner");
+    const success = document.getElementById("successOwner");
+    if(pass===ownerPass){
+      owner=true;
+      document.querySelector("#ownerPanel").style.display="block";
+      error.textContent="";
+      success.textContent="✅ Uspješno ste se prijavili kao Owner!";
+      updateAdminList();
+    } else{
+      error.textContent="❌ Pogrešna lozinka!";
+      success.textContent="";
+    }
+  }
+  function logoutOwner(){
+    owner=false;
+    document.querySelector("#ownerPanel").style.display="none";
   }
 
-  function logout() {
-    localStorage.removeItem("admin");
-    location.reload();
+  // ADMIN LIST MANAGEMENT
+  function updateAdminList(){
+    const ul = document.getElementById("adminList");
+    ul.innerHTML="";
+    adminSifre.forEach((a,i)=>{
+      let li=document.createElement("li");
+      li.textContent=a+" ";
+      let btn=document.createElement("button");
+      btn.textContent="Ukloni";
+      btn.onclick=()=>{ adminSifre.splice(i,1); updateAdminList();}
+      li.appendChild(btn);
+      ul.appendChild(li);
+    });
+  }
+  function addAdmin(){
+    const pass = document.getElementById("newAdminPass").value;
+    if(pass){ adminSifre.push(pass); updateAdminList(); alert("✅ Novi admin dodat!"); }
   }
 
-  function prijavaGW() {
-    let ime = prompt("Unesi ime i prezime:");
-    if(!ime) return;
+  // GW
+  function prijavaGW(){
+    let ime=prompt("Unesi ime i prezime:");
+    if(!ime)return;
     gwList.push(ime);
     updateGW();
     alert("✅ Uspješno ste se prijavili!");
   }
-
-  function updateGW() {
-    let ul = document.getElementById("listaGW");
-    ul.innerHTML = "";
-    gwList.forEach(i => {
-      let li = document.createElement("li");
-      li.textContent = i;
-      ul.appendChild(li);
+  function updateGW(){
+    const ul=document.getElementById("listaGW");
+    ul.innerHTML="";
+    gwList.forEach(i=>{
+      let li=document.createElement("li"); li.textContent=i; ul.appendChild(li);
     });
-    document.getElementById("brojGW").textContent = gwList.length;
+    document.getElementById("brojGW").textContent=gwList.length;
   }
-
-  function postaviGW() {
+  function postaviGW(){ 
     if(!admin) return;
-    let n = document.getElementById("nazivInput").value;
-    let v = document.getElementById("vrijemeInput").value;
-    document.getElementById("gwNaziv").textContent = n;
-    document.getElementById("gwVrijeme").textContent = "Vrijeme: " + v;
+    document.getElementById("gwNaziv").textContent=document.getElementById("nazivInput").value;
+    document.getElementById("gwVrijeme").textContent="Vrijeme: "+document.getElementById("vrijemeInput").value;
   }
-
-  function izvuci() {
-    if(!admin) return;
-    if(gwList.length===0) { alert("Nema prijavljenih!"); return; }
-    let win = gwList[Math.floor(Math.random()*gwList.length)];
-    document.getElementById("pobjednik").textContent = "🎉 Pobjednik: " + win;
+  function izvuci(){ if(!admin || gwList.length===0){ alert("Nema prijavljenih!"); return;}
+    let win=gwList[Math.floor(Math.random()*gwList.length)];
+    document.getElementById("pobjednik").textContent="🎉 Pobjednik: "+win;
   }
+  function resetGW(){ if(!admin){return;} gwList=[]; updateGW(); document.getElementById("pobjednik").textContent=""; }
 
-  function resetGW() {
-    if(!admin) return;
-    gwList = [];
-    updateGW();
-    document.getElementById("pobjednik").textContent = "";
-  }
-
-  function prijavaTurnir() {
-    let p1 = document.getElementById("p1").value;
-    let p2 = document.getElementById("p2").value;
-    let p3 = document.getElementById("p3").value;
-    let tim = document.getElementById("tim").value;
-    let bsid = document.getElementById("bsid").value;
-
-    if(!p1 || !p2 || !p3 || !tim || !bsid) return alert("Popuni sve podatke!");
+  // TURNIR
+  function prijavaTurnir(){
+    let p1=document.getElementById("p1").value;
+    let p2=document.getElementById("p2").value;
+    let p3=document.getElementById("p3").value;
+    let tim=document.getElementById("tim").value;
+    let bsid=document.getElementById("bsid").value;
+    if(!p1||!p2||!p3||!tim||!bsid){ alert("Popuni sve podatke!"); return;}
     turnirList.push({p1,p2,p3,tim,bsid});
     updateTurnir();
     alert("✅ Uspješno ste se prijavili u turnir!");
   }
-
-  function updateTurnir() {
-    let ul = document.getElementById("listaTurnir");
-    ul.innerHTML = "";
-    turnirList.forEach(t => {
-      let li = document.createElement("li");
-      li.textContent = `${t.tim} (${t.p1}, ${t.p2}, ${t.p3})`;
+  function updateTurnir(){
+    const ul=document.getElementById("listaTurnir");
+    ul.innerHTML="";
+    turnirList.forEach(t=>{
+      let li=document.createElement("li");
+      li.textContent=`${t.tim} (${t.p1}, ${t.p2}, ${t.p3})`;
       ul.appendChild(li);
     });
-    document.getElementById("brojTurnir").textContent = turnirList.length;
+    document.getElementById("brojTurnir").textContent=turnirList.length;
   }
+  function resetTurnir(){ if(!admin) return; turnirList=[]; updateTurnir(); }
 
-  function resetTurnir() {
-    if(!admin) return;
-    turnirList = [];
-    updateTurnir();
-  }
 </script>
-
 </body>
 </html>
