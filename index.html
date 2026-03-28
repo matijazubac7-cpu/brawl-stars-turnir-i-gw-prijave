@@ -1,1 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Brawl Stars Turnir</title>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: linear-gradient(135deg, #1e90ff, #00bfff);
+      color: white;
+      text-align: center;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      padding: 15px;
+    }
+
+    .user-icon {
+      cursor: pointer;
+      font-size: 24px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      border-radius: 8px;
+      border: none;
+      background: white;
+      color: #1e90ff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    input {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 6px;
+      border: none;
+    }
+
+    .box { display: none; margin-top: 20px; }
+    .admin { display: none; margin-top: 10px; }
+
+    ul { list-style: none; padding: 0; }
+    li { background: rgba(255,255,255,0.2); margin: 5px; padding: 5px; border-radius: 6px; }
+    #error { color: red; }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h2>Brawl Stars</h2>
+  <div class="user-icon" onclick="show('adminLogin')">👤</div>
+</header>
+
+<h1>Pozdrav 👋</h1>
+<p>Ovde se možete prijavit u GW ili turnir</p>
+
+<button onclick="show('gw')">🎁 Giveaway</button>
+<button onclick="show('turnir')">🏆 Turnir</button>
+
+<!-- ADMIN LOGIN -->
+<div id="adminLogin" class="box">
+  <h3>Admin Login</h3>
+  <input type="password" id="adminPass" placeholder="Lozinka"><br>
+  <p id="error"></p>
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- GIVEAWAY -->
+<div id="gw" class="box">
+  <h2 id="gwNaziv">GW</h2>
+  <p id="gwVrijeme"></p>
+
+  <button onclick="prijavaGW()">Prijavi se u GW</button>
+
+  <ul id="listaGW"></ul>
+
+  <div class="admin" id="adminGW">
+    <input id="nazivInput" placeholder="Naziv GW">
+    <input id="vrijemeInput" placeholder="Vrijeme">
+    <button onclick="postaviGW()">Postavi</button>
+
+    <button onclick="izvuci()">🎲 Izvuci</button>
+    <button onclick="resetGW()">Reset</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <h3 id="pobjednik"></h3>
+</div>
+
+<!-- TURNIR -->
+<div id="turnir" class="box">
+  <input id="p1" placeholder="Igrač 1">
+  <input id="p2" placeholder="Igrač 2">
+  <input id="p3" placeholder="Igrač 3">
+  <input id="tim" placeholder="Ime tima">
+  <input id="bsid" placeholder="BS ID">
+
+  <button onclick="prijavaTurnir()">Prijavi se</button>
+
+  <ul id="listaTurnir"></ul>
+
+  <div class="admin" id="adminTurnir">
+    <button onclick="resetTurnir()">Reset</button>
+  </div>
+</div>
+
+<script>
+  // 🔥 UBACI SVOJ FIREBASE CONFIG OVDJE
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // VIŠE ADMINA
+  const adminSifre = ["NEVESINJE2026.28.3", "ADMIN123", "TEST"];
+  let admin = false;
+
+  // NAV
+  function show(id) {
+    document.querySelectorAll(".box").forEach(b => b.style.display = "none");
+    document.getElementById(id).style.display = "block";
+  }
+
+  // LOGIN
+  function login() {
+    let pass = document.getElementById("adminPass").value;
+    let error = document.getElementById("error");
+
+    if (adminSifre.includes(pass)) {
+      admin = true;
+      localStorage.setItem("admin", "true");
+      error.textContent = "";
+      alert("Admin uspješno prijavljen!");
+      document.querySelectorAll(".admin").forEach(a => a.style.display = "block");
+    } else {
+      error.textContent = "❌ Pogrešna lozinka!";
+    }
+  }
+
+  // PROVJERA PRI UCITAVANJU
+  if (localStorage.getItem("admin") === "true") {
+    admin = true;
+    document.querySelectorAll(".admin").forEach(a => a.style.display = "block");
+  }
+
+  function logout() {
+    localStorage.removeItem("admin");
+    location.reload();
+  }
+
+  // GW
+  function prijavaGW() {
+    let ime = prompt("Unesi ime i prezime:");
+    if (!ime) return;
+    db.collection("gw").add({ ime });
+  }
+
+  db.collection("gw").onSnapshot(snapshot => {
+    let lista = document.getElementById("listaGW");
+    lista.innerHTML = "";
+    snapshot.forEach(doc => {
+      let li = document.createElement("li");
+      li.textContent = doc.data().ime;
+      lista.appendChild(li);
+    });
+  });
+
+  function postaviGW() {
+    if (!admin) return;
+    let naziv = document.getElementById("nazivInput").value;
+    let vrijeme = document.getElementById("vrijemeInput").value;
+    document.getElementById("gwNaziv").textContent = naziv;
+    document.getElementById("gwVrijeme").textContent = "Vrijeme: " + vrijeme;
+  }
+
+  function izvuci() {
+    if (!admin) return;
+    db.collection("gw").get().then(snapshot => {
+      let arr = [];
+      snapshot.forEach(doc => arr.push(doc.data().ime));
+      if(arr.length === 0) return;
+      let win = arr[Math.floor(Math.random() * arr.length)];
+      document.getElementById("pobjednik").textContent = "Pobjednik: " + win;
+    });
+  }
+
+  function resetGW() {
+    if (!admin) return;
+    db.collection("gw").get().then(snapshot => {
+      snapshot.forEach(doc => doc.ref.delete());
+    });
+  }
+
+  // TURNIR
+  function prijavaTurnir() {
+    let p1_ = document.getElementById("p1").value;
+    let p2_ = document.getElementById("p2").value;
+    let p3_ = document.getElementById("p3").value;
+    let tim_ = document.getElementById("tim").value;
+    let bsid_ = document.getElementById("bsid").value;
+
+    if(!p1_ || !p2_ || !p3_ || !tim_ || !bsid_) { alert("Popuni sve!"); return; }
+
+    db.collection("turnir").add({ p1: p1_, p2: p2_, p3: p3_, tim: tim_, bsid: bsid_ });
+  }
+
+  db.collection("turnir").onSnapshot(snapshot => {
+    let lista = document.getElementById("listaTurnir");
+    lista.innerHTML = "";
+    snapshot.forEach(doc => {
+      let d = doc.data();
+      let li = document.createElement("li");
+      li.textContent = `${d.tim} (${d.p1}, ${d.p2}, ${d.p3})`;
+      lista.appendChild(li);
+    });
+  });
+
+  function resetTurnir() {
+    if (!admin) return;
+    db.collection("turnir").get().then(snapshot => {
+      snapshot.forEach(doc => doc.ref.delete());
+    });
+  }
+</script>
+
+</body>
+</html>
